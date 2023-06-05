@@ -14,6 +14,7 @@ from pathlib import Path
 from decouple import config, Csv
 from dj_database_url import parse as db_url
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -30,6 +31,7 @@ DEBUG = config('DEBUG', cast=bool, default=False)
 #ALLOWED_HOSTS = ['pyprojuniors.fly.dev',]
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -40,10 +42,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'pypro_sj.base',
+    's3_folder_storage',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware'
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -119,7 +123,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_ROOT = BASE_DIR / 'mediafiles'
@@ -131,3 +135,36 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CSRF_TRUSTED_ORIGINS =["https://pyprojuniors.fly.dev"]
+
+
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+
+# config do aws S3
+
+if AWS_ACCESS_KEY_ID:
+    AWS_SECRET_ACESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+    AWS_PRELOAD_METADATA = True
+    AWS_AUTO_CREATE_BUCKET = False
+    AWS_QUERYSTRING_AUTH = True
+    AWS_S3_CUSTOM_DOMAIN = None
+    AWS_DEFAULT_ACL = 'private'
+
+    # static assets
+    STATICFILES_STORAGE = 's3_folder.storage.s3.StaticStorage'
+    STATIC_S3_PATH = 'static'
+    STATIC_ROOT = f'/{STATIC_S3_PATH}/'
+    STATIC_URL = f'//s3.amazonaws.com/{AWS_STORAGE_BUCKET_NAME}/{STATIC_S3_PATH}/'
+    ADMIN_MEDIA_PREFIX = STATIC_URL + 'admin/'
+
+    # upload media folder
+    DEFAULT_FILES_STORAGE = 's3_folder_storage.s3.DefaultStorage'
+    DEFAULT_S3_PATH = 'media'
+    MEDIA_ROOT = f'/{DEFAULT_S3_PATH}/'
+    MEDIA_URL = f'//s3.amazonaws.com/{AWS_STORAGE_BUCKET_NAME}/{DEFAULT_S3_PATH}/'
+
+    # INSTALLED_APPS.append('s3_folder_storage')
+    # INSTALLED_APPS.append('storages')
